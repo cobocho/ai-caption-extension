@@ -1,0 +1,15 @@
+.translated-caption {
+  padding: 10px;
+  background-color: rgba(0, 0, 0, 0.8);
+  border-radius: 5px;
+  font-size: 2.5rem;
+  margin-bottom: 6px;
+  word-break: keep-all;
+  color: white;
+  text-align: center;
+  margin-inline: 30px;
+}
+
+.translated-caption:hover {
+  background-color: rgba(0, 0, 0, 0.3);
+}
