@@ -1,33 +1,22 @@
+import { sendToBackground } from "@plasmohq/messaging"
+
 import "./content.css"
 
 import { getStorage, setStorage } from "./utils/storage"
-
-let then = Date.now()
-
-let lastCaption = ""
 
 const $ = <T extends Element>(selector: string) =>
   document.querySelector(selector) as T
 
 const translate = async (text: string) => {
   try {
-    const response = await fetch(process.env.PLASMO_PUBLIC_TRANSLATE_API, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
+    const response = await sendToBackground({
+      name: "translate",
+      body: {
         text
-      })
+      }
     })
 
-    const result = (await response.json()) as {
-      translations: {
-        text: string
-      }[]
-    }
-
-    return result.translations[0].text
+    return response.translate
   } catch (e) {
     return "번역 실패) " + e
   }
@@ -50,29 +39,20 @@ const createTranslatedCaption = (
   lastCaption = captionText
 }
 
+let then = Date.now()
+let lastCaption = ""
+
 const translateCaption = async (originalCaptionSelector: string) => {
   if (Date.now() - then > 50) {
-    const translateOn = await getStorage("translate")
-
-    if (!translateOn) {
-      $(".translated-caption")?.remove()
-
-      requestAnimationFrame(() => translateCaption(originalCaptionSelector))
-      return
-    }
-
     const captionDiv = $<HTMLDivElement>(originalCaptionSelector)
+    const captionText = captionDiv.textContent.trim()
+    const isBlankText = captionText.length === 0
+    const isSameCaption = lastCaption === captionText
 
     if (!captionDiv) {
       requestAnimationFrame(() => translateCaption(originalCaptionSelector))
       return
     }
-
-    const parentNode = captionDiv.parentNode! as HTMLDivElement
-
-    const captionText = captionDiv.textContent.trim()
-    const isBlankText = captionText.length === 0
-    const isSameCaption = lastCaption === captionText
 
     if (isBlankText || isSameCaption) {
       requestAnimationFrame(() => translateCaption(originalCaptionSelector))
@@ -80,37 +60,28 @@ const translateCaption = async (originalCaptionSelector: string) => {
     }
 
     const savedCaption = await getStorage<string>(captionText)
+    const parentNode = captionDiv.parentNode! as HTMLDivElement
 
     if (savedCaption) {
       createTranslatedCaption(savedCaption, parentNode)
-
+      lastCaption = captionText
       requestAnimationFrame(() => translateCaption(originalCaptionSelector))
       return
     }
 
     const translateText = await translate(captionText)
-
-    setStorage(captionText, translateText)
+    await setStorage(captionText, translateText)
 
     createTranslatedCaption(translateText, parentNode)
+    lastCaption = captionText
   }
 
   requestAnimationFrame(() => translateCaption(originalCaptionSelector))
 }
 
-const main = () => {
+const main = async () => {
   if (location.href.includes("threejs-journey.com/lessons/")) {
     translateCaption(".js-tracks-text")
-    return
-  }
-
-  if (location.href.includes("youtube.com")) {
-    translateCaption(".captions-text")
-    return
-  }
-
-  if (location.href.includes("udemy.com")) {
-    translateCaption('div[data-purpose="captions-cue-text"]')
     return
   }
 }
