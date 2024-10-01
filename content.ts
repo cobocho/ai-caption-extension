@@ -2,8 +2,6 @@ import { sendToBackground } from "@plasmohq/messaging"
 
 import "./content.css"
 
-import { getStorage, setStorage } from "./utils/storage"
-
 const $ = <T extends Element>(selector: string) =>
   document.querySelector(selector) as T
 
@@ -59,18 +57,9 @@ const translateCaption = async (originalCaptionSelector: string) => {
       return
     }
 
-    const savedCaption = await getStorage<string>(captionText)
     const parentNode = captionDiv.parentNode! as HTMLDivElement
 
-    if (savedCaption) {
-      createTranslatedCaption(savedCaption, parentNode)
-      lastCaption = captionText
-      requestAnimationFrame(() => translateCaption(originalCaptionSelector))
-      return
-    }
-
     const translateText = await translate(captionText)
-    await setStorage(captionText, translateText)
 
     createTranslatedCaption(translateText, parentNode)
     lastCaption = captionText
